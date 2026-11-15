@@ -1,0 +1,40 @@
+
+name: List EC2 Instances using AWS OIDC
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  list-ec2:
+    name: List EC2 Instances
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Authenticate to AWS using OIDC
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::112736196475:role/githubactions-pipelines
+          aws-region: eu-north-1
+          role-session-name: GitHubActionsSession
+
+      - name: Verify AWS Authentication
+        run: |
+          aws sts get-caller-identity
+
+      - name: List EC2 Instances
+        run: |
+          echo "Listing EC2 Instances..."
+
+          aws ec2 describe-instances \
+            --query 'Reservations[].Instances[].[InstanceId,State.Name,InstanceType,PublicIpAddress,Tags[?Key==`Name`].Value|[0]]' \
+            --output table
